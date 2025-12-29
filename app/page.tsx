@@ -51,18 +51,10 @@ export default function Home() {
       </SignedIn>
 
       <SignedOut>
-        <div className="mx-auto flex justify-center items-center flex-col gap-3">
+        <div className="mx-auto flex mt-10 items-center flex-col gap-3">
           <p className="text-black font-inter text-[24px] font-semibold leading-8 tracking-[-0.6px]">
             Please login or signup to continue
           </p>
-          <div className="flex gap-4">
-            <SignInButton>
-              <Button>Sign in</Button>
-            </SignInButton>
-            <SignUpButton>
-              <Button>Sign up</Button>
-            </SignUpButton>
-          </div>
         </div>
       </SignedOut>
     </>
