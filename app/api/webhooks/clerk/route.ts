@@ -23,7 +23,7 @@ export async function POST(req: Request) {
       "svix-timestamp": svix_timestamp,
       "svix-signature": svix_signature,
     });
-    console.log("Webhook event received:", evt);
+    // console.log("Webhook event received:", evt);
   } catch {
     return new Response("Invalid signature", { status: 400 });
   }

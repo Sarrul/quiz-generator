@@ -31,7 +31,7 @@ model Article {
   id        String   @id @default(cuid())
   title     String
   content   String
-  summary   String
+  summary   String?
 
   userId    String
   user      User     @relation(fields: [userId], references: [id])

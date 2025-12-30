@@ -1,14 +1,40 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
 import { FileText, Sparkles } from "lucide-react";
 import Image from "next/image";
+import { useState } from "react";
 
 export default function Home() {
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+
+  async function handleGenerate() {
+    const res = await fetch("/api/articles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title,
+        content,
+      }),
+    });
+
+    const article = await res.json();
+
+    // 🔥 Trigger summary generation
+    await fetch(`/api/articles/${article.id}/summary`, {
+      method: "POST",
+    });
+
+    // optional: refresh articles list
+  }
+
   return (
     <>
       <SignedIn>
-        <div className="flex flex-col gap-5 self-stretch rounded-lg border border-zinc-200 bg-white p-7 h-[442px] w-[856px] mx-auto mt-48">
+        <div className="flex flex-col gap-5 self-stretch rounded-lg border border-zinc-200 bg-white p-7 w-214 h-fit mx-auto mt-48">
           {/* title description */}
           <div className="gap-2 flex flex-col">
             <p className="text-black font-inter text-[24px] font-semibold leading-8 tracking-[-0.6px] flex text-center gap-2">
@@ -28,7 +54,11 @@ export default function Home() {
               <FileText width={15} height={15} />
               Article title
             </p>
-            <Input placeholder="Enter a title for your article..." />
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter a title for your article..."
+            />
           </div>
 
           {/* article content input */}
@@ -38,14 +68,18 @@ export default function Home() {
               Article content
             </p>
             <textarea
-              className="flex h-[120px] p-[8px_12px] items-start self-stretch rounded-[6px] border border-[#E4E4E7] bg-white"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="flex h-30 p-[8px_12px] items-start self-stretch rounded-[6px] border border-[#E4E4E7] bg-white"
               placeholder="Paste your article content here..."
             />
           </div>
 
           {/* generate button */}
           <div className="w-full flex justify-end">
-            <Button className="w-fit">Generate summary</Button>
+            <Button onClick={handleGenerate} className="w-fit">
+              Generate summary
+            </Button>
           </div>
         </div>
       </SignedIn>
