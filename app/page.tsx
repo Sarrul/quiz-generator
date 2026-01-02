@@ -1,5 +1,9 @@
 "use client";
 
+import { ArticleForm } from "@/_components/ArticleForm";
+import { QuizView } from "@/_components/quizForm";
+import { QuizScore } from "@/_components/quizScore";
+import { SummaryView } from "@/_components/Summary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
@@ -8,80 +12,124 @@ import Image from "next/image";
 import { useState } from "react";
 
 export default function Home() {
+  type View = "form" | "summary" | "quiz" | "score";
+
+  const [view, setView] = useState<View>("form");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [summary, setSummary] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  type QuizQuestion = {
+    question: string;
+    options: string[];
+    correctAnswerIndex: number;
+  };
+
+  const [quiz, setQuiz] = useState<QuizQuestion[]>([]);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [answers, setAnswers] = useState<number[]>([]);
 
   async function handleGenerate() {
-    const res = await fetch("/api/articles", {
+    setLoading(true);
+
+    const res = await fetch("/api/generateSummary", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        content,
-      }),
+      body: JSON.stringify({ title, content }),
     });
 
-    const article = await res.json();
+    const data = await res.json();
+    setSummary(data.summary);
+    setView("summary");
+    setLoading(false);
+    console.log(data.summary, "summaryyyyyy");
+  }
 
-    // 🔥 Trigger summary generation
-    await fetch(`/api/articles/${article.id}/summary`, {
+  async function handleTakeQuiz() {
+    const res = await fetch("/api/generateQuiz", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
     });
 
-    // optional: refresh articles list
+    const data = await res.json();
+    setQuiz(data.questions);
+    setCurrentQuestion(0);
+    setAnswers([]);
+    setView("quiz");
   }
 
   return (
     <>
       <SignedIn>
-        <div className="flex flex-col gap-5 self-stretch rounded-lg border border-zinc-200 bg-white p-7 w-214 h-fit mx-auto mt-48">
-          {/* title description */}
-          <div className="gap-2 flex flex-col">
-            <p className="text-black font-inter text-[24px] font-semibold leading-8 tracking-[-0.6px] flex text-center gap-2">
-              <Sparkles />
-              Article Quiz Generator
-            </p>
-            <p className="text-[#71717A] font-inter text-[16px] font-normal leading-[1.2]">
-              Paste your article below to generate a summarize and quiz
-              question. Your articles will saved in the sidebar for future
-              reference.
-            </p>
-          </div>
+        {view === "form" && (
+          <ArticleForm
+            title={title}
+            content={content}
+            loading={loading}
+            setTitle={setTitle}
+            setContent={setContent}
+            onGenerate={handleGenerate}
+          />
+        )}
 
-          {/* article title input */}
-          <div className="gap-1 flex flex-col">
-            <p className="text-[#71717A] font-inter text-[14px] font-semibold leading-5 flex gap-1">
-              <FileText width={15} height={15} />
-              Article title
-            </p>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter a title for your article..."
-            />
-          </div>
+        {view === "summary" && (
+          <SummaryView
+            summary={summary}
+            title={title}
+            onBack={() => {
+              setSummary("");
+              setView("form");
+            }}
+            handleTakeQuiz={handleTakeQuiz}
+          />
+        )}
 
-          {/* article content input */}
-          <div className="gap-1 flex flex-col">
-            <p className="text-[#71717A] font-inter text-[14px] font-semibold leading-5 flex gap-1">
-              <FileText width={15} height={15} />
-              Article content
-            </p>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="flex h-30 p-[8px_12px] items-start self-stretch rounded-[6px] border border-[#E4E4E7] bg-white"
-              placeholder="Paste your article content here..."
-            />
-          </div>
+        {view === "quiz" && quiz.length > 0 && (
+          <QuizView
+            question={quiz[currentQuestion]}
+            questionIndex={currentQuestion}
+            totalQuestions={quiz.length}
+            onAnswer={(answerIndex) => {
+              setAnswers((prev) => [...prev, answerIndex]);
 
-          {/* generate button */}
-          <div className="w-full flex justify-end">
-            <Button onClick={handleGenerate} className="w-fit">
-              Generate summary
-            </Button>
-          </div>
-        </div>
+              if (currentQuestion === quiz.length - 1) {
+                setView("score");
+              } else {
+                setCurrentQuestion((q) => q + 1);
+              }
+            }}
+            onCancel={() => {
+              const confirmCancel = confirm(
+                "If you press Cancel, this quiz will restart from the beginning."
+              );
+
+              if (confirmCancel) {
+                setCurrentQuestion(0);
+                setAnswers([]);
+                setView("summary");
+              }
+            }}
+          />
+        )}
+
+        {view === "score" && (
+          <QuizScore
+            quiz={quiz}
+            answers={answers}
+            onRestart={() => {
+              setCurrentQuestion(0);
+              setAnswers([]);
+              setView("quiz");
+            }}
+            onLeave={() => {
+              setQuiz([]);
+              setAnswers([]);
+              setView("form");
+            }}
+          />
+        )}
       </SignedIn>
 
       <SignedOut>

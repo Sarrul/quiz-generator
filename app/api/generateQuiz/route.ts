@@ -16,19 +16,34 @@ export async function POST(req: Request) {
   const { title, content } = await req.json();
 
   if (!content) {
-    return new Response("Content is required", { status: 400 });
+    return Response.json({ error: "Content is required" }, { status: 400 });
   }
 
   // 3️⃣ Build prompt
   const prompt = `
-Summarize the following article clearly and concisely.
+Create a quiz based on the article below.
 
-Title: ${title || "Untitled"}
+Rules:
+- Exactly 5 questions
+- Each question has 4 answer options
+- Only one correct answer
+- Return ONLY valid JSON
+- No explanations
+
+JSON format:
+{
+  "questions": [
+    {
+      "question": "",
+      "options": ["", "", "", ""],
+      "correctAnswerIndex": 0
+    }
+  ]
+}
 
 Article:
 ${content}
 
-Summary:
 `;
 
   try {
