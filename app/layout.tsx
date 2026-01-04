@@ -12,6 +12,7 @@ import "./globals.css";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/_features/App-sidebar";
 import { Button } from "@/components/ui/button";
+import { ArticleProvider } from "@/_contexts/ArcticleContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -65,13 +66,15 @@ export default function RootLayout({
             </div>
           </header>
           <SidebarProvider>
-            <AppSidebar />
-            <main className="flex-1 min-h-screen flex bg-zinc-50 w-full">
-              <div className="px-4 pt-4 pb-0 self-stretch border-r border-r-zinc-200 bg-white w-fit h-full">
-                <SidebarTrigger />
-              </div>
-              {children}
-            </main>
+            <ArticleProvider>
+              <AppSidebar />
+              <main className="flex-1 min-h-screen flex bg-zinc-50 w-full">
+                <div className="px-4 pt-4 pb-0 self-stretch border-r border-r-zinc-200 bg-white w-fit h-full sticky top-0">
+                  <SidebarTrigger />
+                </div>
+                {children}
+              </main>
+            </ArticleProvider>
           </SidebarProvider>
         </body>
       </html>

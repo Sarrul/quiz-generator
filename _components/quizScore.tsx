@@ -13,9 +13,16 @@ type Props = {
   answers: number[];
   onRestart: () => void;
   onLeave: () => void;
+  handleSaveAndLeave: () => void;
 };
 
-export function QuizScore({ quiz, answers, onRestart, onLeave }: Props) {
+export function QuizScore({
+  quiz,
+  answers,
+  onRestart,
+  onLeave,
+  handleSaveAndLeave,
+}: Props) {
   const score = quiz.reduce((acc, q, index) => {
     return acc + (q.correctAnswerIndex === answers[index] ? 1 : 0);
   }, 0);
@@ -77,7 +84,7 @@ export function QuizScore({ quiz, answers, onRestart, onLeave }: Props) {
         <Button variant="outline" onClick={onRestart}>
           Restart quiz
         </Button>
-        <Button onClick={onLeave}>Save & leave</Button>
+        <Button onClick={handleSaveAndLeave}>Save & leave</Button>
       </div>
     </div>
   );

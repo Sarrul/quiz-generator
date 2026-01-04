@@ -53,10 +53,31 @@ ${content}
       contents: prompt,
     });
 
-    // 5️⃣ Extract text
-    const summary = response.text;
+    // 5️⃣ Get raw AI text
+    const rawText = response.text;
 
-    return Response.json({ summary });
+    if (!rawText) {
+      console.error("Gemini returned no text:", response);
+      return new Response("AI returned empty response", { status: 500 });
+    }
+
+    // 6️⃣ Clean markdown (VERY IMPORTANT)
+    const cleanedText = rawText
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    // 7️⃣ Parse JSON safely
+    let quizData;
+    try {
+      quizData = JSON.parse(cleanedText);
+    } catch (err) {
+      console.error("Invalid AI JSON:", rawText);
+      return new Response("AI returned invalid JSON", { status: 500 });
+    }
+
+    // 8️⃣ Return parsed quiz
+    return Response.json(quizData);
   } catch (error) {
     console.error("Gemini error:", error);
     return new Response("Failed to generate summary", { status: 500 });

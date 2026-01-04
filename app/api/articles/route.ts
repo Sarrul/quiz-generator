@@ -1,3 +1,10 @@
+// import prisma from "@/lib/prisma";
+
+// export async function GET() {
+//   const articles = await prisma.article.findMany();
+//   return Response.json(articles);
+// }
+
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 
@@ -7,7 +14,7 @@ export async function POST(req: Request) {
   if (!userId) return new Response("Unauthorized", { status: 401 });
 
   const body = await req.json();
-  const { title, content } = body;
+  const { title, content, summary } = body;
 
   const user = await prisma.user.findUnique({
     where: { clerkId: userId },
@@ -19,6 +26,7 @@ export async function POST(req: Request) {
     data: {
       title,
       content,
+      summary,
       userId: user.id,
     },
   });

@@ -4,12 +4,9 @@ import { ArticleForm } from "@/_components/ArticleForm";
 import { QuizView } from "@/_components/quizForm";
 import { QuizScore } from "@/_components/quizScore";
 import { SummaryView } from "@/_components/Summary";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
-import { FileText, Sparkles } from "lucide-react";
-import Image from "next/image";
-import { useState } from "react";
+import { useArticle } from "@/_contexts/ArcticleContext";
+import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { useEffect, useState } from "react";
 
 export default function Home() {
   type View = "form" | "summary" | "quiz" | "score";
@@ -59,6 +56,36 @@ export default function Home() {
     setAnswers([]);
     setView("quiz");
   }
+
+  async function handleSaveAndLeave() {
+    await fetch("/api/articles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title,
+        content,
+        summary,
+      }),
+    });
+
+    setTitle("");
+    setContent("");
+    setSummary("");
+    setQuiz([]);
+    setAnswers([]);
+    setView("form");
+  }
+
+  const { selectedArticle } = useArticle();
+
+  useEffect(() => {
+    if (!selectedArticle) return;
+
+    setTitle(selectedArticle.title);
+    setContent(selectedArticle.content);
+    setSummary(selectedArticle.summary ?? "");
+    setView("summary");
+  }, [selectedArticle]);
 
   return (
     <>
@@ -128,6 +155,7 @@ export default function Home() {
               setAnswers([]);
               setView("form");
             }}
+            handleSaveAndLeave={handleSaveAndLeave}
           />
         )}
       </SignedIn>
