@@ -6,9 +6,16 @@ type Props = {
   onBack: () => void;
   title: string;
   handleTakeQuiz: () => void | Promise<void>;
+  isLoading: boolean;
 };
 
-export function SummaryView({ title, summary, onBack, handleTakeQuiz }: Props) {
+export function SummaryView({
+  title,
+  summary,
+  onBack,
+  handleTakeQuiz,
+  isLoading,
+}: Props) {
   return (
     <div className="flex flex-col mx-auto gap-6  mt-48">
       <Button variant="outline" onClick={onBack} className="w-fit">
@@ -31,7 +38,7 @@ export function SummaryView({ title, summary, onBack, handleTakeQuiz }: Props) {
 
         {/* generate button */}
         <div className="flex justify-end" onClick={handleTakeQuiz}>
-          <Button>Take a quiz</Button>
+          <Button>{isLoading ? "Preparing quiz..." : "Take a quiz"}</Button>
         </div>
       </div>
     </div>

@@ -12,6 +12,7 @@ export type Article = {
 type ArticleContextType = {
   selectedArticle: Article | null;
   selectArticle: (article: Article) => void;
+  clearSelectedArticle: () => void;
 };
 
 const ArticleContext = createContext<ArticleContextType | null>(null);
@@ -23,7 +24,8 @@ export function ArticleProvider({ children }: { children: React.ReactNode }) {
     <ArticleContext.Provider
       value={{
         selectedArticle,
-        selectArticle: setSelectedArticle,
+        selectArticle: (article) => setSelectedArticle(article),
+        clearSelectedArticle: () => setSelectedArticle(null),
       }}
     >
       {children}

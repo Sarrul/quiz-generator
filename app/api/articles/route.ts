@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   if (!userId) return new Response("Unauthorized", { status: 401 });
 
   const body = await req.json();
-  const { title, content, summary } = body;
+  const { id, title, content, summary } = body;
 
   const user = await prisma.user.findUnique({
     where: { clerkId: userId },
@@ -22,14 +22,19 @@ export async function POST(req: Request) {
 
   if (!user) return new Response("User not found", { status: 404 });
 
-  const article = await prisma.article.create({
-    data: {
-      title,
-      content,
-      summary,
-      userId: user.id,
-    },
-  });
+  const article = id
+    ? await prisma.article.update({
+        where: { id },
+        data: { title, content, summary },
+      })
+    : await prisma.article.create({
+        data: {
+          title,
+          content,
+          summary,
+          userId: user.id,
+        },
+      });
 
   return Response.json(article);
 }
