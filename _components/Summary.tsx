@@ -5,7 +5,7 @@ type Props = {
   summary: string;
   onBack: () => void;
   title: string;
-  handleTakeQuiz: () => void | Promise<void>;
+  handleTakeQuiz: () => void;
   isLoading: boolean;
 };
 

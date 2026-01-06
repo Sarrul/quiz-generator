@@ -30,6 +30,8 @@ export default function Home() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
 
+  const { selectedArticle, clearSelectedArticle } = useArticle();
+
   async function handleGenerate() {
     setLoading(true);
 
@@ -45,20 +47,43 @@ export default function Home() {
     setLoading(false);
     console.log(data.summary, "summaryyyyyy");
   }
-  async function handleTakeQuiz(id: string) {
+
+  async function handleTakeQuizById(id: string) {
+    setIsLoading(true);
+
+    try {
+      clearSelectedArticle(); // ✅ THIS IS THE FIX
+
+      const res = await fetch("/api/generateQuiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ articleId: id }),
+      });
+
+      const data = await res.json();
+
+      setQuiz(data.questions);
+      setCurrentQuestion(0);
+      setAnswers([]);
+      setView("quiz");
+    } catch (err) {
+      console.error("Failed to load quiz:", err);
+      alert("Failed to load quiz. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleTakeQuizFromSummary() {
     setIsLoading(true);
     try {
       const res = await fetch("/api/generateQuiz", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ articleId: id, content }),
+        body: JSON.stringify({ content }),
       });
 
-      if (!res.ok) {
-        const text = await res.text(); // in case of error string
-        console.error("Quiz fetch error:", text);
-        return;
-      }
+      if (!res.ok) throw new Error(await res.text());
 
       const data = await res.json();
       setQuiz(data.questions);
@@ -92,8 +117,6 @@ export default function Home() {
     setView("form");
   }
 
-  const { selectedArticle, clearSelectedArticle } = useArticle();
-
   return (
     <>
       <SignedIn>
@@ -102,7 +125,7 @@ export default function Home() {
             article={selectedArticle}
             isLoading={isLoading}
             onBack={clearSelectedArticle}
-            onTakeQuiz={handleTakeQuiz}
+            onTakeQuiz={handleTakeQuizById}
           />
         ) : (
           <>
@@ -124,7 +147,7 @@ export default function Home() {
                 onBack={() => {
                   setView("form");
                 }}
-                handleTakeQuiz={handleTakeQuiz}
+                handleTakeQuiz={handleTakeQuizFromSummary}
                 isLoading={isLoading}
               />
             )}

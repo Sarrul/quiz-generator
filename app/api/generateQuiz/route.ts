@@ -1,89 +1,3 @@
-// import { auth } from "@clerk/nextjs/server";
-// import { GoogleGenAI } from "@google/genai";
-
-// const ai = new GoogleGenAI({
-//   apiKey: process.env.GEMINI_API_KEY!,
-// });
-
-// export async function POST(req: Request) {
-//   // 1️⃣ Auth check
-//   const { userId } = await auth();
-//   if (!userId) {
-//     return new Response("Unauthorized", { status: 401 });
-//   }
-
-//   // 2️⃣ Parse request
-//   const { title, content } = await req.json();
-
-//   if (!content) {
-//     return Response.json({ error: "Content is required" }, { status: 400 });
-//   }
-
-//   // 3️⃣ Build prompt
-//   const prompt = `
-// Create a quiz based on the article below.
-
-// Rules:
-// - Exactly 5 questions
-// - Each question has 4 answer options
-// - Only one correct answer
-// - Return ONLY valid JSON
-// - No explanations
-
-// JSON format:
-// {
-//   "questions": [
-//     {
-//       "question": "",
-//       "options": ["", "", "", ""],
-//       "correctAnswerIndex": 0
-//     }
-//   ]
-// }
-
-// Article:
-// ${content}
-
-// `;
-
-//   try {
-//     // 4️⃣ Call Gemini
-//     const response = await ai.models.generateContent({
-//       model: "gemini-2.5-flash",
-//       contents: prompt,
-//     });
-
-//     // 5️⃣ Get raw AI text
-//     const rawText = response.text;
-
-//     if (!rawText) {
-//       console.error("Gemini returned no text:", response);
-//       return new Response("AI returned empty response", { status: 500 });
-//     }
-
-//     // 6️⃣ Clean markdown (VERY IMPORTANT)
-//     const cleanedText = rawText
-//       .replace(/```json/g, "")
-//       .replace(/```/g, "")
-//       .trim();
-
-//     // 7️⃣ Parse JSON safely
-//     let quizData;
-//     try {
-//       quizData = JSON.parse(cleanedText);
-//     } catch (err) {
-//       console.error("Invalid AI JSON:", rawText);
-//       return new Response("AI returned invalid JSON", { status: 500 });
-//     }
-
-//     // 8️⃣ Return parsed quiz
-//     return Response.json(quizData);
-//   } catch (error) {
-//     console.error("Gemini error:", error);
-//     return new Response("Failed to generate summary", { status: 500 });
-//   }
-// }
-
 import { auth } from "@clerk/nextjs/server";
 import { GoogleGenAI } from "@google/genai";
 import prisma from "@/lib/prisma";
@@ -100,7 +14,7 @@ export async function POST(req: Request) {
   }
 
   // 2️⃣ Parse request
-  const { articleId, content } = await req.json();
+  const { articleId } = await req.json();
 
   if (!articleId) {
     return new Response("Article ID is required", { status: 400 });
@@ -115,9 +29,12 @@ export async function POST(req: Request) {
     return new Response("User not found", { status: 404 });
   }
 
-  // 4️⃣ CHECK IF QUIZ ALREADY EXISTS ⭐⭐⭐
+  // 4️⃣ Check existing quiz (cache)
   const existingQuiz = await prisma.quiz.findMany({
-    where: { articleId },
+    where: {
+      articleId,
+      userId: user.id,
+    },
   });
 
   if (existingQuiz.length > 0) {
@@ -130,7 +47,19 @@ export async function POST(req: Request) {
     });
   }
 
-  // 5️⃣ Build Gemini prompt
+  // 5️⃣ Load article from DB ⭐⭐⭐
+  const article = await prisma.article.findUnique({
+    where: {
+      id: articleId,
+      userId: user.id,
+    },
+  });
+
+  if (!article) {
+    return new Response("Article not found", { status: 404 });
+  }
+
+  // 6️⃣ Build Gemini prompt
   const prompt = `
 Create a quiz based on the article below.
 
@@ -153,11 +82,11 @@ JSON format:
 }
 
 Article:
-${content}
+${article.content}
 `;
 
   try {
-    // 6️⃣ Call Gemini
+    // 7️⃣ Call Gemini
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
@@ -168,7 +97,7 @@ ${content}
       return new Response("AI returned empty response", { status: 500 });
     }
 
-    // 7️⃣ Clean + parse
+    // 8️⃣ Parse response safely
     const cleanedText = rawText
       .replace(/```json/g, "")
       .replace(/```/g, "")
@@ -176,7 +105,7 @@ ${content}
 
     const quizData = JSON.parse(cleanedText);
 
-    // 8️⃣ SAVE QUIZ TO DATABASE ⭐⭐⭐
+    // 9️⃣ Save quiz
     await prisma.quiz.createMany({
       data: quizData.questions.map((q: any) => ({
         question: q.question,
@@ -187,7 +116,7 @@ ${content}
       })),
     });
 
-    // 9️⃣ Return quiz
+    // 🔟 Return quiz
     return Response.json(quizData);
   } catch (error) {
     console.error("Generate quiz error:", error);
