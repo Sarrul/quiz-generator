@@ -14,6 +14,7 @@ type Props = {
   onRestart: () => void;
   onLeave: () => void;
   handleSaveAndLeave: () => void;
+  isHistory: boolean;
 };
 
 export function QuizScore({
@@ -22,6 +23,7 @@ export function QuizScore({
   onRestart,
   onLeave,
   handleSaveAndLeave,
+  isHistory,
 }: Props) {
   const score = quiz.reduce((acc, q, index) => {
     return acc + (q.correctAnswerIndex === answers[index] ? 1 : 0);
@@ -84,7 +86,11 @@ export function QuizScore({
         <Button variant="outline" onClick={onRestart}>
           Restart quiz
         </Button>
-        <Button onClick={handleSaveAndLeave}>Save & leave</Button>
+        {!isHistory && (
+          <Button onClick={handleSaveAndLeave}>Save & Leave</Button>
+        )}
+
+        {isHistory && <Button onClick={onLeave}>Leave</Button>}
       </div>
     </div>
   );

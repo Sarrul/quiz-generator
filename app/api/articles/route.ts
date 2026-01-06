@@ -16,6 +16,10 @@ export async function POST(req: Request) {
   const body = await req.json();
   const { id, title, content, summary } = body;
 
+  if (!title || !content || !summary) {
+    return new Response("Invalid article data", { status: 400 });
+  }
+
   const user = await prisma.user.findUnique({
     where: { clerkId: userId },
   });

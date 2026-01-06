@@ -31,6 +31,7 @@ export default function Home() {
   const [answers, setAnswers] = useState<number[]>([]);
 
   const { selectedArticle, clearSelectedArticle } = useArticle();
+  const isHistoryArticle = Boolean(selectedArticle);
 
   async function handleGenerate() {
     setLoading(true);
@@ -184,6 +185,7 @@ export default function Home() {
               <QuizScore
                 quiz={quiz}
                 answers={answers}
+                isHistory={isHistoryArticle}
                 onRestart={() => {
                   setCurrentQuestion(0);
                   setAnswers([]);
