@@ -7,6 +7,8 @@ import { quizService, type QuizQuestion } from "@/lib/quizService";
 type View = "form" | "summary" | "quiz" | "score";
 type QuizSource = "new" | "history";
 
+export type { QuizQuestion };
+
 export function useArticleFlow() {
   const [view, setView] = useState<View>("form");
   const [title, setTitle] = useState("");
