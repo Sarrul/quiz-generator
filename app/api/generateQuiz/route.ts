@@ -50,11 +50,14 @@ export async function POST(req: Request) {
 
   if (existingQuiz.length > 0) {
     return Response.json({
-      questions: existingQuiz.map((q) => ({
-        question: q.question,
-        options: q.options,
-        correctAnswerIndex: Number(q.answer),
-      })),
+      questions: existingQuiz.map(
+        (q: { question: string; options: string[]; answer: string }) => ({
+          // ✅ FIX HERE
+          question: q.question,
+          options: q.options,
+          correctAnswerIndex: Number(q.answer),
+        })
+      ),
     });
   }
 
@@ -114,12 +117,11 @@ ${article.content}
       .replace(/```/g, "")
       .trim();
 
-    const quizData = JSON.parse(cleanedText) as QuizResponse; // ✅ Type assertion
+    const quizData = JSON.parse(cleanedText) as QuizResponse;
 
     // 9️⃣ Save quiz
     await prisma.quiz.createMany({
       data: quizData.questions.map((q: QuizQuestion) => ({
-        // ✅ Proper type
         question: q.question,
         options: q.options,
         answer: String(q.correctAnswerIndex),
