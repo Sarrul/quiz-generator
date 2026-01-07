@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { GoogleGenAI } from "@google/genai";
 import prisma from "@/lib/prisma";
+import { Question } from "@prisma/client"; // ✅ Import Question type
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
@@ -46,14 +47,15 @@ export async function POST(req: Request) {
       userId: user.id,
     },
     include: {
-      questions: true, // ✅ Include related questions
+      questions: true,
     },
   });
 
   if (existingQuiz && existingQuiz.questions.length > 0) {
     return Response.json({
-      questions: existingQuiz.questions.map((q) => ({
-        question: q.text, // ✅ Field is "text" not "question"
+      questions: existingQuiz.questions.map((q: Question) => ({
+        // ✅ Type the parameter
+        question: q.text,
         options: q.options,
         correctAnswerIndex: q.correctAnswerIndex,
       })),
@@ -118,14 +120,15 @@ ${article.content}
 
     const quizData = JSON.parse(cleanedText) as QuizResponse;
 
-    // 9️⃣ Save quiz with questions - FIXED to create Quiz + Questions properly
+    // 9️⃣ Save quiz with questions
     const newQuiz = await prisma.quiz.create({
       data: {
         articleId,
         userId: user.id,
         questions: {
-          create: quizData.questions.map((q) => ({
-            text: q.question, // ✅ Map "question" to "text"
+          create: quizData.questions.map((q: QuizQuestion) => ({
+            // ✅ Type this too
+            text: q.question,
             options: q.options,
             correctAnswerIndex: q.correctAnswerIndex,
           })),
@@ -138,7 +141,8 @@ ${article.content}
 
     // 🔟 Return quiz
     return Response.json({
-      questions: newQuiz.questions.map((q) => ({
+      questions: newQuiz.questions.map((q: Question) => ({
+        // ✅ And this one
         question: q.text,
         options: q.options,
         correctAnswerIndex: q.correctAnswerIndex,
