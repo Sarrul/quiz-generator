@@ -1,7 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { GoogleGenAI } from "@google/genai";
 import prisma from "@/lib/prisma";
-import { Question } from "@prisma/client"; // ✅ Import Question type
+import { Question } from "@prisma/client";
+// import { Question } from "@prisma/client";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
