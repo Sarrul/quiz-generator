@@ -27,9 +27,12 @@ export function QuizScore({
   isHistory,
   quizSource,
 }: Props) {
-  const score = quiz.reduce((acc, q, index) => {
-    return acc + (q.correctAnswerIndex === answers[index] ? 1 : 0);
-  }, 0);
+  const score = quiz.reduce<number>(
+    (acc: number, q: QuizQuestion, index: number) => {
+      return acc + (q.correctAnswerIndex === answers[index] ? 1 : 0);
+    },
+    0
+  );
 
   return (
     <div className="max-w-2xl mx-auto mt-24 p-6 rounded-lg border bg-white">
@@ -46,7 +49,7 @@ export function QuizScore({
 
       {/* Question review */}
       <div className="flex flex-col gap-6">
-        {quiz.map((q, qIndex) => {
+        {quiz.map((q: QuizQuestion, qIndex: number) => {
           const userAnswer = answers[qIndex];
           const isCorrect = userAnswer === q.correctAnswerIndex;
 
