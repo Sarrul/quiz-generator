@@ -6,6 +6,17 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
 });
 
+// ✅ Define the type at the top of the file
+type QuizQuestion = {
+  question: string;
+  options: string[];
+  correctAnswerIndex: number;
+};
+
+type QuizResponse = {
+  questions: QuizQuestion[];
+};
+
 export async function POST(req: Request) {
   // 1️⃣ Auth
   const { userId } = await auth();
@@ -103,11 +114,12 @@ ${article.content}
       .replace(/```/g, "")
       .trim();
 
-    const quizData = JSON.parse(cleanedText);
+    const quizData = JSON.parse(cleanedText) as QuizResponse; // ✅ Type assertion
 
     // 9️⃣ Save quiz
     await prisma.quiz.createMany({
-      data: quizData.questions.map((q: any) => ({
+      data: quizData.questions.map((q: QuizQuestion) => ({
+        // ✅ Proper type
         question: q.question,
         options: q.options,
         answer: String(q.correctAnswerIndex),
