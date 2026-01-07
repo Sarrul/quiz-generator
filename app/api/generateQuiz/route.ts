@@ -6,7 +6,6 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
 });
 
-// ✅ Define the type at the top of the file
 type QuizQuestion = {
   question: string;
   options: string[];
@@ -40,28 +39,28 @@ export async function POST(req: Request) {
     return new Response("User not found", { status: 404 });
   }
 
-  // 4️⃣ Check existing quiz (cache)
-  const existingQuiz = await prisma.quiz.findMany({
+  // 4️⃣ Check existing quiz (cache) - FIXED to include questions
+  const existingQuiz = await prisma.quiz.findFirst({
     where: {
       articleId,
       userId: user.id,
     },
+    include: {
+      questions: true, // ✅ Include related questions
+    },
   });
 
-  if (existingQuiz.length > 0) {
+  if (existingQuiz && existingQuiz.questions.length > 0) {
     return Response.json({
-      questions: existingQuiz.map(
-        (q: { question: string; options: string[]; answer: string }) => ({
-          // ✅ FIX HERE
-          question: q.question,
-          options: q.options,
-          correctAnswerIndex: Number(q.answer),
-        })
-      ),
+      questions: existingQuiz.questions.map((q) => ({
+        question: q.text, // ✅ Field is "text" not "question"
+        options: q.options,
+        correctAnswerIndex: q.correctAnswerIndex,
+      })),
     });
   }
 
-  // 5️⃣ Load article from DB ⭐⭐⭐
+  // 5️⃣ Load article from DB
   const article = await prisma.article.findUnique({
     where: {
       id: articleId,
@@ -119,19 +118,32 @@ ${article.content}
 
     const quizData = JSON.parse(cleanedText) as QuizResponse;
 
-    // 9️⃣ Save quiz
-    await prisma.quiz.createMany({
-      data: quizData.questions.map((q: QuizQuestion) => ({
-        question: q.question,
-        options: q.options,
-        answer: String(q.correctAnswerIndex),
+    // 9️⃣ Save quiz with questions - FIXED to create Quiz + Questions properly
+    const newQuiz = await prisma.quiz.create({
+      data: {
         articleId,
         userId: user.id,
-      })),
+        questions: {
+          create: quizData.questions.map((q) => ({
+            text: q.question, // ✅ Map "question" to "text"
+            options: q.options,
+            correctAnswerIndex: q.correctAnswerIndex,
+          })),
+        },
+      },
+      include: {
+        questions: true,
+      },
     });
 
     // 🔟 Return quiz
-    return Response.json(quizData);
+    return Response.json({
+      questions: newQuiz.questions.map((q) => ({
+        question: q.text,
+        options: q.options,
+        correctAnswerIndex: q.correctAnswerIndex,
+      })),
+    });
   } catch (error) {
     console.error("Generate quiz error:", error);
     return new Response("Failed to generate quiz", { status: 500 });
