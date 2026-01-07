@@ -6,117 +6,36 @@ import { QuizView } from "@/_components/quizForm";
 import { QuizScore } from "@/_components/quizScore";
 import { SummaryView } from "@/_components/Summary";
 import { useArticle } from "@/_contexts/ArcticleContext";
+import { useArticleFlow } from "@/hooks/useArticleFlow";
 import { SignedIn, SignedOut } from "@clerk/nextjs";
-import { useEffect, useState } from "react";
 
 export default function Home() {
-  type View = "form" | "summary" | "quiz" | "score";
-
-  const [view, setView] = useState<View>("form");
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [summary, setSummary] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [articleId, setArticleId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  type QuizQuestion = {
-    question: string;
-    options: string[];
-    correctAnswerIndex: number;
-  };
-
-  const [quiz, setQuiz] = useState<QuizQuestion[]>([]);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<number[]>([]);
-
   const { selectedArticle, clearSelectedArticle } = useArticle();
+  const {
+    view,
+    title,
+    content,
+    summary,
+    loading,
+    isLoading,
+    quiz,
+    currentQuestion,
+    answers,
+    quizSource,
+    setTitle,
+    setContent,
+    setView,
+    handleGenerate,
+    handleTakeQuizById,
+    handleTakeQuizFromSummary,
+    handleSaveAndLeave,
+    handleAnswer,
+    handleCancelQuiz,
+    handleRestartQuiz,
+    handleLeaveQuiz,
+  } = useArticleFlow();
+
   const isHistoryArticle = Boolean(selectedArticle);
-
-  async function handleGenerate() {
-    setLoading(true);
-
-    const res = await fetch("/api/generateSummary", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, content }),
-    });
-
-    const data = await res.json();
-    setSummary(data.summary);
-    setView("summary");
-    setLoading(false);
-    console.log(data.summary, "summaryyyyyy");
-  }
-
-  async function handleTakeQuizById(id: string) {
-    setIsLoading(true);
-
-    try {
-      clearSelectedArticle(); // ✅ THIS IS THE FIX
-
-      const res = await fetch("/api/generateQuiz", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ articleId: id }),
-      });
-
-      const data = await res.json();
-
-      setQuiz(data.questions);
-      setCurrentQuestion(0);
-      setAnswers([]);
-      setView("quiz");
-    } catch (err) {
-      console.error("Failed to load quiz:", err);
-      alert("Failed to load quiz. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function handleTakeQuizFromSummary() {
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/generateQuiz", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
-      });
-
-      if (!res.ok) throw new Error(await res.text());
-
-      const data = await res.json();
-      setQuiz(data.questions);
-      setCurrentQuestion(0);
-      setAnswers([]);
-      setView("quiz");
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function handleSaveAndLeave() {
-    console.log("SAVING SUMMARY:", summary);
-
-    await fetch("/api/articles", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: articleId,
-        title,
-        content,
-        summary,
-      }),
-    });
-
-    setTitle("");
-    setContent("");
-    setSummary("");
-    setQuiz([]);
-    setAnswers([]);
-    setView("form");
-  }
 
   return (
     <>
@@ -126,7 +45,7 @@ export default function Home() {
             article={selectedArticle}
             isLoading={isLoading}
             onBack={clearSelectedArticle}
-            onTakeQuiz={handleTakeQuizById}
+            onTakeQuiz={(id) => handleTakeQuizById(id, clearSelectedArticle)}
           />
         ) : (
           <>
@@ -145,9 +64,7 @@ export default function Home() {
               <SummaryView
                 summary={summary}
                 title={title}
-                onBack={() => {
-                  setView("form");
-                }}
+                onBack={() => setView("form")}
                 handleTakeQuiz={handleTakeQuizFromSummary}
                 isLoading={isLoading}
               />
@@ -158,44 +75,19 @@ export default function Home() {
                 question={quiz[currentQuestion]}
                 questionIndex={currentQuestion}
                 totalQuestions={quiz.length}
-                onAnswer={(answerIndex) => {
-                  setAnswers((prev) => [...prev, answerIndex]);
-
-                  if (currentQuestion === quiz.length - 1) {
-                    setView("score");
-                  } else {
-                    setCurrentQuestion((q) => q + 1);
-                  }
-                }}
-                onCancel={() => {
-                  const confirmCancel = confirm(
-                    "If you press Cancel, this quiz will restart from the beginning."
-                  );
-
-                  if (confirmCancel) {
-                    setCurrentQuestion(0);
-                    setAnswers([]);
-                    setView("summary");
-                  }
-                }}
+                onAnswer={handleAnswer}
+                onCancel={handleCancelQuiz}
               />
             )}
 
             {view === "score" && (
               <QuizScore
                 quiz={quiz}
+                quizSource={quizSource}
                 answers={answers}
                 isHistory={isHistoryArticle}
-                onRestart={() => {
-                  setCurrentQuestion(0);
-                  setAnswers([]);
-                  setView("quiz");
-                }}
-                onLeave={() => {
-                  setQuiz([]);
-                  setAnswers([]);
-                  setView("form");
-                }}
+                onRestart={handleRestartQuiz}
+                onLeave={handleLeaveQuiz}
                 handleSaveAndLeave={handleSaveAndLeave}
               />
             )}
