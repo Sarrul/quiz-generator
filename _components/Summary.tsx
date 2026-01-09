@@ -37,7 +37,7 @@ export function SummaryView({
         </div>
 
         {/* generate button */}
-        <div className="flex justify-end" onClick={handleTakeQuiz}>
+        <div onClick={handleTakeQuiz}>
           <Button>{isLoading ? "Preparing quiz..." : "Take a quiz"}</Button>
         </div>
       </div>
