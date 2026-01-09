@@ -16,7 +16,7 @@ type QuizResponse = {
   questions: QuizQuestion[];
 };
 
-// ✅ Manually define Quiz type based on your schema
+// ✅ Manually define Quiz type - don't import from @prisma/client
 type Quiz = {
   id: string;
   createdAt: Date;
@@ -48,7 +48,6 @@ export async function POST(req: Request) {
     return new Response("User not found", { status: 404 });
   }
 
-  // Check existing quiz
   const existingQuiz = await prisma.quiz.findMany({
     where: {
       articleId,
@@ -66,7 +65,6 @@ export async function POST(req: Request) {
     });
   }
 
-  // Load article
   const article = await prisma.article.findUnique({
     where: {
       id: articleId,
@@ -121,7 +119,6 @@ ${article.content}
 
     const quizData = JSON.parse(cleanedText) as QuizResponse;
 
-    // Save quiz
     await prisma.quiz.createMany({
       data: quizData.questions.map((q: QuizQuestion) => ({
         question: q.question,
