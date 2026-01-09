@@ -24,6 +24,7 @@ export async function POST(req: Request) {
   if (!userId) {
     return new Response("Unauthorized", { status: 401 });
   }
+  // "onCommand:experiment.showSelectedCode"
 
   // 2️⃣ Parse request
   const { articleId } = await req.json();
