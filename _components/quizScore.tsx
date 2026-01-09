@@ -19,7 +19,6 @@ export function QuizScore({
   onRestart,
   onLeave,
   handleSaveAndLeave,
-  isHistory,
   quizSource,
 }: Props) {
   const score = quiz.reduce((acc, q, index) => {
