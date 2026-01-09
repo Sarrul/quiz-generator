@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { GoogleGenAI } from "@google/genai";
 import prisma from "@/lib/prisma";
-import { Quiz } from "@prisma/client";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
@@ -15,6 +14,18 @@ type QuizQuestion = {
 
 type QuizResponse = {
   questions: QuizQuestion[];
+};
+
+// ✅ Manually define Quiz type based on your schema
+type Quiz = {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  question: string;
+  options: string[];
+  answer: string;
+  userId: string;
+  articleId: string;
 };
 
 export async function POST(req: Request) {
