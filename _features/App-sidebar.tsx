@@ -32,8 +32,6 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          {loading && <p className="px-4 text-sm text-zinc-500">Loading...</p>}
-
           {!loading && articles.length === 0 && (
             <p className="px-4 text-sm text-zinc-500">No saved articles yet</p>
           )}
