@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { GoogleGenAI } from "@google/genai";
 import prisma from "@/lib/prisma";
 
@@ -16,7 +16,6 @@ type QuizResponse = {
   questions: QuizQuestion[];
 };
 
-// ✅ Manually define Quiz type - don't import from @prisma/client
 type Quiz = {
   id: string;
   createdAt: Date;
@@ -40,12 +39,26 @@ export async function POST(req: Request) {
     return new Response("Article ID is required", { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({
+  // ✅ Find or create user if they don't exist yet
+  let user = await prisma.user.findUnique({
     where: { clerkId: userId },
   });
 
   if (!user) {
-    return new Response("User not found", { status: 404 });
+    console.log("User not found in DB, creating...");
+
+    // Get user info from Clerk
+    const clerkUser = await currentUser();
+
+    user = await prisma.user.create({
+      data: {
+        clerkId: userId,
+        email: clerkUser?.emailAddresses?.[0]?.emailAddress || "",
+        name: clerkUser?.fullName || clerkUser?.firstName || "Unknown",
+      },
+    });
+
+    console.log("User created:", user.id);
   }
 
   const existingQuiz = await prisma.quiz.findMany({

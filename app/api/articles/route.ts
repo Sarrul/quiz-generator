@@ -1,14 +1,7 @@
-// import prisma from "@/lib/prisma";
-
-// export async function GET() {
-//   const articles = await prisma.article.findMany();
-//   return Response.json(articles);
-// }
-
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 
-// post
+// POST - Create or update article
 export async function POST(req: Request) {
   const { userId } = await auth();
   if (!userId) return new Response("Unauthorized", { status: 401 });
@@ -20,11 +13,27 @@ export async function POST(req: Request) {
     return new Response("Invalid article data", { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({
+  // ✅ Find or create user if they don't exist yet
+  let user = await prisma.user.findUnique({
     where: { clerkId: userId },
   });
 
-  if (!user) return new Response("User not found", { status: 404 });
+  if (!user) {
+    console.log("User not found in DB, creating...");
+
+    // Get user info from Clerk
+    const clerkUser = await currentUser();
+
+    user = await prisma.user.create({
+      data: {
+        clerkId: userId,
+        email: clerkUser?.emailAddresses?.[0]?.emailAddress || "",
+        name: clerkUser?.fullName || clerkUser?.firstName || "Unknown",
+      },
+    });
+
+    console.log("User created:", user.id);
+  }
 
   const article = id
     ? await prisma.article.update({
@@ -43,7 +52,7 @@ export async function POST(req: Request) {
   return Response.json(article);
 }
 
-// get
+// GET - Fetch all articles for the user
 export async function GET() {
   const { userId } = await auth();
 
@@ -51,12 +60,26 @@ export async function GET() {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const user = await prisma.user.findUnique({
+  // ✅ Find or create user if they don't exist yet
+  let user = await prisma.user.findUnique({
     where: { clerkId: userId },
   });
 
   if (!user) {
-    return new Response("User not found", { status: 404 });
+    console.log("User not found in DB, creating...");
+
+    // Get user info from Clerk
+    const clerkUser = await currentUser();
+
+    user = await prisma.user.create({
+      data: {
+        clerkId: userId,
+        email: clerkUser?.emailAddresses?.[0]?.emailAddress || "",
+        name: clerkUser?.fullName || clerkUser?.firstName || "Unknown",
+      },
+    });
+
+    console.log("User created:", user.id);
   }
 
   const articles = await prisma.article.findMany({
