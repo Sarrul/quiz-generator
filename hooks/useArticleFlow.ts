@@ -65,17 +65,26 @@ export function useArticleFlow() {
     setIsLoading(true);
     setQuizSource("new");
     try {
+      console.log("Saving article...", { title, content, summary });
       const id = await articleService.saveArticle({ title, content, summary });
+      console.log("Article saved with ID:", id);
       setArticleId(id);
 
+      console.log("Generating quiz for article:", id);
       const questions = await quizService.generateQuiz(id);
+      console.log("Quiz generated:", questions);
+
       setQuiz(questions);
       setCurrentQuestion(0);
       setAnswers([]);
       setView("quiz");
     } catch (error) {
       console.error("Failed to generate quiz:", error);
-      alert("Failed to generate quiz. Please try again.");
+      alert(
+        `Failed to generate quiz: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     } finally {
       setIsLoading(false);
     }
