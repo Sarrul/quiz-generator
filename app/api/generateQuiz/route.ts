@@ -1,8 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { GoogleGenAI } from "@google/genai";
 import prisma from "@/lib/prisma";
-import { Question } from "@prisma/client";
-// import { Question } from "@prisma/client";
+import { Quiz } from "@prisma/client";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
@@ -19,21 +18,17 @@ type QuizResponse = {
 };
 
 export async function POST(req: Request) {
-  // 1️⃣ Auth
   const { userId } = await auth();
   if (!userId) {
     return new Response("Unauthorized", { status: 401 });
   }
-  // "onCommand:experiment.showSelectedCode"
 
-  // 2️⃣ Parse request
   const { articleId } = await req.json();
 
   if (!articleId) {
     return new Response("Article ID is required", { status: 400 });
   }
 
-  // 3️⃣ Find user
   const user = await prisma.user.findUnique({
     where: { clerkId: userId },
   });
@@ -42,29 +37,25 @@ export async function POST(req: Request) {
     return new Response("User not found", { status: 404 });
   }
 
-  // 4️⃣ Check existing quiz (cache) - FIXED to include questions
-  const existingQuiz = await prisma.quiz.findFirst({
+  // Check existing quiz
+  const existingQuiz = await prisma.quiz.findMany({
     where: {
       articleId,
       userId: user.id,
     },
-    include: {
-      questions: true,
-    },
   });
 
-  if (existingQuiz && existingQuiz.questions.length > 0) {
+  if (existingQuiz.length > 0) {
     return Response.json({
-      questions: existingQuiz.questions.map((q: Question) => ({
-        // ✅ Type the parameter
-        question: q.text,
+      questions: existingQuiz.map((q: Quiz) => ({
+        question: q.question,
         options: q.options,
-        correctAnswerIndex: q.correctAnswerIndex,
+        correctAnswerIndex: Number(q.answer),
       })),
     });
   }
 
-  // 5️⃣ Load article from DB
+  // Load article
   const article = await prisma.article.findUnique({
     where: {
       id: articleId,
@@ -76,7 +67,6 @@ export async function POST(req: Request) {
     return new Response("Article not found", { status: 404 });
   }
 
-  // 6️⃣ Build Gemini prompt
   const prompt = `
 Create a quiz based on the article below.
 
@@ -103,7 +93,6 @@ ${article.content}
 `;
 
   try {
-    // 7️⃣ Call Gemini
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
@@ -114,7 +103,6 @@ ${article.content}
       return new Response("AI returned empty response", { status: 500 });
     }
 
-    // 8️⃣ Parse response safely
     const cleanedText = rawText
       .replace(/```json/g, "")
       .replace(/```/g, "")
@@ -122,34 +110,18 @@ ${article.content}
 
     const quizData = JSON.parse(cleanedText) as QuizResponse;
 
-    // 9️⃣ Save quiz with questions
-    const newQuiz = await prisma.quiz.create({
-      data: {
+    // Save quiz
+    await prisma.quiz.createMany({
+      data: quizData.questions.map((q: QuizQuestion) => ({
+        question: q.question,
+        options: q.options,
+        answer: String(q.correctAnswerIndex),
         articleId,
         userId: user.id,
-        questions: {
-          create: quizData.questions.map((q: QuizQuestion) => ({
-            // ✅ Type this too
-            text: q.question,
-            options: q.options,
-            correctAnswerIndex: q.correctAnswerIndex,
-          })),
-        },
-      },
-      include: {
-        questions: true,
-      },
-    });
-
-    // 🔟 Return quiz
-    return Response.json({
-      questions: newQuiz.questions.map((q: Question) => ({
-        // ✅ And this one
-        question: q.text,
-        options: q.options,
-        correctAnswerIndex: q.correctAnswerIndex,
       })),
     });
+
+    return Response.json(quizData);
   } catch (error) {
     console.error("Generate quiz error:", error);
     return new Response("Failed to generate quiz", { status: 500 });
